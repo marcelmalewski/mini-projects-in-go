@@ -1,29 +1,39 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
-	"os"
+	"regexp"
+	"strings"
 )
 
 func main() {
-	f, err := os.Open("ogniem_i_mieczem.txt")
+	content, err := ioutil.ReadFile("ogniem_i_mieczem.txt")
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer f.Close()
+	slicedFile := strings.Fields(string(content))
 
-	scanner := bufio.NewScanner(f)
-	scanner.Split(bufio.ScanWords)
+	for i := 0; i < len(slicedFile); i++ {
+		wordToLower := strings.ToLower(slicedFile[i])
+		wordToLowerSplit := strings.Split(wordToLower, "")
+		var wordToLowerSplitFiltered []string
 
-	for scanner.Scan() {
+		for i := range wordToLowerSplit {
+			if isLetterOrNumber(wordToLowerSplit[i]) {
+				wordToLowerSplitFiltered = append(wordToLowerSplitFiltered, wordToLowerSplit[i])
+			}
+		}
 
-		fmt.Println(scanner.Text())
+		//fmt.Println(filteredWord)
+		fmt.Println(wordToLowerSplitFiltered)
 	}
+}
 
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
+func isLetterOrNumber(val string) bool {
+	matched, _ := regexp.MatchString(`[a-z0-9ąćęłńóśżź]`, val)
+	return matched
 }
