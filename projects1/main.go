@@ -16,11 +16,6 @@ import (
 	"strings"
 )
 
-//import (
-
-//)
-
-//tworzenie nowego typu
 type Pair struct {
 	Key   string
 	Value int
@@ -28,94 +23,22 @@ type Pair struct {
 
 type PairList []Pair
 
-func (p PairList) Len() int { return len(p) }
-
-//potrzebne do sortowania
+// Swap and Less and Len we need this to sort results by concurrency
 func (p PairList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p PairList) Less(i, j int) bool { return p[i].Value < p[j].Value }
-
-var data = []string{"a", "string", "list"}
+func (p PairList) Len() int           { return len(p) }
 
 func main() {
-	content, err := ioutil.ReadFile("ogniem_i_mieczem.txt")
+	words := getWordsFromFile("ogniem_i_mieczem.txt")
 
-	if err != nil {
-		log.Fatal(err)
-	}
+	clearedWordsWithOccurrenceForMarcel, clearedWordsWithOccurrenceForPaulina := getClearedWordsWithOccurrence(words)
+	sortedResultForMarcelToPrint, sortedResultForPaulinaToPrint := getSortedResultToPrintForMarcelAndPaulina(clearedWordsWithOccurrenceForMarcel, clearedWordsWithOccurrenceForPaulina)
 
-	//zmienia string na array słow usuwa wszystkie spacje i entery
-	slicedFile := strings.Fields(string(content))
-	//mapy do liczenia slow dla Pauliny i Marcela
-	mapNumberOfWordsFilteredForPaulina := make(map[string]int)
-	mapNumberOfWordsFilteredForMarcel := make(map[string]int)
+	//makeshift window with results
+	printResultsInWindow(sortedResultForMarcelToPrint, sortedResultForPaulinaToPrint)
+}
 
-	for i := 0; i < len(slicedFile); i++ {
-		//zeby nie przejmowac sie wielkoscią liter
-		wordToLower := strings.ToLower(slicedFile[i])
-		wordToLowerSplit := strings.Split(wordToLower, "")
-		var wordToLowerFiltered string
-
-		//czyscimy stringa ze znakow interpunkcyjnych i spacji itd.
-		for i := range wordToLowerSplit {
-			if isLetterOrNumber(wordToLowerSplit[i]) {
-				wordToLowerFiltered += wordToLowerSplit[i]
-			}
-		}
-
-		if wordToLowerFiltered != "" {
-			//zestaw dla Pauliny
-			if isAcceptedByPaulina(wordToLowerFiltered) {
-				mapNumberOfWordsFilteredForPaulina[wordToLowerFiltered] += 1
-			}
-
-			//zestaw dla Marcela
-			if isAcceptedByMarcel(wordToLowerFiltered) {
-				mapNumberOfWordsFilteredForMarcel[wordToLowerFiltered] += 1
-			}
-		}
-
-	}
-
-	//tworzenie zestawu Pauliny
-	resultForPaulina := make(PairList, len(mapNumberOfWordsFilteredForPaulina))
-
-	i := 0
-	for key, value := range mapNumberOfWordsFilteredForPaulina {
-		resultForPaulina[i] = Pair{key, value}
-		i++
-	}
-
-	//sortowanie
-	sort.Sort(sort.Reverse(resultForPaulina))
-	resultForPaulinaSlice := make([]string, len(mapNumberOfWordsFilteredForPaulina))
-
-	i = 0
-	for _, k := range resultForPaulina {
-		stringVal := strconv.Itoa(k.Value)
-		resultForPaulinaSlice[i] = k.Key + " - " + stringVal
-		i++
-	}
-
-	//tworzenie zestawu Marcela
-	resultForMarcel := make(PairList, len(mapNumberOfWordsFilteredForMarcel))
-
-	i = 0
-	for key, value := range mapNumberOfWordsFilteredForMarcel {
-		resultForMarcel[i] = Pair{key, value}
-		i++
-	}
-
-	//sortowanie
-	sort.Sort(sort.Reverse(resultForMarcel))
-	resultForMarcelSlice := make([]string, len(mapNumberOfWordsFilteredForMarcel))
-
-	i = 0
-	for _, k := range resultForMarcel {
-		stringVal := strconv.Itoa(k.Value)
-		resultForMarcelSlice[i] = k.Key + " - " + stringVal
-		i++
-	}
-
+func printResultsInWindow(resultForMarcelSlice, resultForPaulinaSlice []string) {
 	myApp := app.New()
 	myWindow := myApp.NewWindow("My Widget")
 	myWindow.Resize(fyne.NewSize(800, 700))
@@ -136,7 +59,6 @@ func main() {
 		func(i widget.ListItemID, o fyne.CanvasObject) {
 			o.(*widget.Label).SetText(resultForMarcelSlice[i])
 		})
-	//listMarcel.Resize(fyne.NewSize(300, 300))
 
 	listPaulina := widget.NewList(
 		func() int {
@@ -148,18 +70,100 @@ func main() {
 		func(i widget.ListItemID, o fyne.CanvasObject) {
 			o.(*widget.Label).SetText(resultForPaulinaSlice[i])
 		})
-	//listPaulina.Resize(fyne.NewSize(300, 300))
 
-	//test := container.New(layout.NewGridLayout(2), title, list, title, list)
 	vBox := container.New(layout.NewGridWrapLayout(fyne.NewSize(300, 300)), titleMarcel, listMarcel, titlePaulina, listPaulina)
 
 	myWindow.SetContent(vBox)
 	myWindow.ShowAndRun()
 }
 
-func isLetterOrNumber(val string) bool {
-	matched, _ := regexp.MatchString(`[a-z0-9ąćęłńóśżź]`, val)
-	return matched
+func getWordsFromFile(filename string) (slicedFile []string) {
+	content, err := ioutil.ReadFile(filename)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//we change string of words to slice of words
+	//and we make every letter small
+	slicedFile = strings.Fields(strings.ToLower(string(content)))
+	return
+}
+
+func getClearedWordsWithOccurrence(words []string) (clearedWordsWithOccurrenceForMarcel, clearedWordsWithOccurrenceForPaulina map[string]int) {
+	//maps to count Occurrence for Marcel and Paulina
+	clearedWordsWithOccurrenceForPaulina = make(map[string]int)
+	clearedWordsWithOccurrenceForMarcel = make(map[string]int)
+
+	//regex to clear every literal which is not a letter nor number
+	reg, _ := regexp.Compile("[^a-zżźćńółęąś0-9]+")
+
+	for _, word := range words {
+		//clear word
+		wordFiltered := reg.ReplaceAllLiteralString(word, "")
+
+		//if word after clearing is not empty
+		if wordFiltered != "" {
+			//filter for Paulina
+			if isAcceptedByPaulina(wordFiltered) {
+				clearedWordsWithOccurrenceForPaulina[wordFiltered] += 1
+			}
+
+			//filter for Marcel
+			if isAcceptedByMarcel(wordFiltered) {
+				clearedWordsWithOccurrenceForMarcel[wordFiltered] += 1
+			}
+		}
+
+	}
+
+	return
+}
+
+func getSortedResultToPrintForMarcelAndPaulina(clearedWordsWithOccurrenceForMarcel, clearedWordsWithOccurrenceForPaulina map[string]int) (resultForMarcelToPrint, resultForPaulinaToPrint []string) {
+	//we store our data in PairList to be able to use Sort
+
+	//creating result for Paulina
+	sortedResultForPaulina := make(PairList, len(clearedWordsWithOccurrenceForPaulina))
+
+	i := 0
+	for key, value := range clearedWordsWithOccurrenceForPaulina {
+		sortedResultForPaulina[i] = Pair{key, value}
+		i++
+	}
+
+	//sort
+	sort.Sort(sort.Reverse(sortedResultForPaulina))
+	resultForPaulinaToPrint = make([]string, len(clearedWordsWithOccurrenceForPaulina))
+
+	i = 0
+	for _, k := range sortedResultForPaulina {
+		stringVal := strconv.Itoa(k.Value)
+		resultForPaulinaToPrint[i] = k.Key + " - " + stringVal
+		i++
+	}
+
+	//creating result for Marcel
+	sortedResultForMarcel := make(PairList, len(clearedWordsWithOccurrenceForMarcel))
+
+	i = 0
+	for key, value := range clearedWordsWithOccurrenceForMarcel {
+		sortedResultForMarcel[i] = Pair{key, value}
+		i++
+	}
+
+	//sort
+	sort.Sort(sort.Reverse(sortedResultForMarcel))
+	resultForMarcelToPrint = make([]string, len(clearedWordsWithOccurrenceForMarcel))
+
+	i = 0
+	for _, k := range sortedResultForMarcel {
+		stringVal := strconv.Itoa(k.Value)
+		resultForMarcelToPrint[i] = k.Key + " - " + stringVal
+		i++
+	}
+
+	return
 }
 
 func isAcceptedByPaulina(val string) bool {
