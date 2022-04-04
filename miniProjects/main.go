@@ -1,62 +1,98 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+	"strconv"
+	"time"
+)
 
 func main() {
-	//usinięcie co drugiego elemnut wycinka
-	//podanie tylu argumentow ilu chce
-	//i moze jakas weryfikacaj czy dany element mozna usunąć
-	//dodac klirowanie terminala
-	zadanie1()
+	//Zadanie1()
+	Zadanie2()
 }
 
-//funkcja ktora sprawdza czy slice posiada dany element
-func contains(elements []int, element int) bool {
-	for _, value := range elements {
-		if element == value {
-			return true
-		}
+func analizeChosenNumber(chosenNumber, randomNumber int) bool {
+	if chosenNumber == randomNumber {
+		fmt.Println("You Won!")
+		return true
+	} else if chosenNumber < randomNumber {
+		fmt.Println("random number is higher")
+	} else if chosenNumber > randomNumber {
+		fmt.Println("random number is lower")
 	}
+
 	return false
 }
 
-//z malej czyli prywatna funkcja
-func zadanie1() {
-	//slice z wybranymi indexami
-	chosenElements := make([]int, 0)
-	var option, chosenIndex int
-	slice1 := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	fmt.Println("Wybierz ktore miejsca usunąć")
-Loop:
-	//menu
+func game() int {
+	numberOfAttempts := 0
+	var chosenOption string
+	rand.Seed(time.Now().UnixNano())
+	randomNumber := rand.Intn(100)
+
 	for {
-		fmt.Println("1 - dalej wybieram.")
-		fmt.Println("2 - usuwam.")
-		fmt.Scanf("%d\n", &option)
+		fmt.Println("Guess a number")
+		//read option from user and check errors
+		_, err := fmt.Scanf("%s\n", &chosenOption)
+		if err != nil {
+			fmt.Println("error: ", err)
+		} else {
+			numberOfAttempts += 1
+		}
 
-		switch option {
-		case 1:
-			//kontunuje wybieranie
-			fmt.Println("Choose index:")
-			fmt.Scanf("%d\n", &chosenIndex)
-			if chosenIndex < len(slice1) {
-				chosenElements = append(chosenElements, chosenIndex)
+		//comend "end" end program
+		if chosenOption == "end" {
+			fmt.Println("the end")
+			return 0
+		} else {
+			//get number from option
+			optionAsNumber, err := strconv.Atoi(chosenOption)
+
+			//check if chosen option is number
+			if err != nil {
+				fmt.Println("wrong option")
+			} else {
+				if analizeChosenNumber(optionAsNumber, randomNumber) {
+					return numberOfAttempts
+				}
 			}
-		case 2:
-			//wychodze z pętli
-			break Loop
 		}
+	}
+}
+
+func saveResultToCSV(numberOfAttempts int, filename string) {
+	var name string
+
+	_, err := fmt.Scanf("%s\n", &name)
+	if err != nil {
+		fmt.Println("error: ", err)
 	}
 
-	//tmp to slice1 po filtrowaniu
-	tmp := make([]int, 0)
-	for i, v := range slice1 {
-		//sprawdzamy czy index jest w wybranych indexach
-		if contains(chosenElements, i) == false {
-			tmp = append(tmp, v)
+	//all records from csv
+	records := getDataFromCSV(name, filename)
+
+	//send updated records to csv
+	sendNewDataToCSV(records, numberOfAttempts, filename)
+}
+
+func Zadanie2() {
+	var menuOption, name string
+
+Menu:
+	for {
+		_, err := fmt.Scanf("%s\n", &menuOption)
+		if err != nil {
+			fmt.Println("error: ", err)
+		}
+
+		switch menuOption {
+		case "start a game":
+			numberOfAttempts := game()
+
+			fmt.Println(numberOfAttempts)
+		case "quit":
+			break Menu
 		}
 	}
-	slice1 = tmp
-	fmt.Println(slice1)
-	fmt.Println(chosenElements)
 }
