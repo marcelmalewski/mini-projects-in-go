@@ -1,4 +1,3 @@
-number,name,numberOfAttempts
-1,kuba,5
-2,janek,15
-3,wojtek,19
+number,name,numberOfAttempts,date
+1,wojtek,1,04-11-2022 23:17:48
+2,jakub,1,04-11-2022 23:18:29

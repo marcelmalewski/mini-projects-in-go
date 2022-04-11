@@ -14,11 +14,13 @@ import (
 type playerWithResult struct {
 	name             string
 	numberOfAttempts int
+	date             string
 	//date and zgadnieta liczba
 }
 
 type ByNumberOfAttempts []playerWithResult
 
+// rzeczy potrzebne do sortowania do uzycia sort
 func (a ByNumberOfAttempts) Len() int           { return len(a) }
 func (a ByNumberOfAttempts) Less(i, j int) bool { return a[i].numberOfAttempts < a[j].numberOfAttempts }
 func (a ByNumberOfAttempts) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
@@ -41,6 +43,7 @@ func game() int {
 	var chosenOption string
 	rand.Seed(time.Now().UnixNano())
 	randomNumber := rand.Intn(100)
+	fmt.Println(randomNumber)
 
 	for {
 		fmt.Println("Guess a number")
@@ -74,15 +77,15 @@ func game() int {
 
 func saveResultsToCSV(dataBase []playerWithResult, filename string) {
 	//send updated records to csv
-	//open file with read and write only to change it
-	file, err := os.OpenFile(filename, os.O_RDWR, 0644)
+	//open file with write only to change it
+	file, err := os.OpenFile(filename, os.O_WRONLY, 0222)
 	if err != nil {
 		log.Fatal(err)
 	}
 	csvWriter := csv.NewWriter(file)
 
 	//set first line in csv file
-	firstLine := []string{"number", "name", "numberOfAttempts"}
+	firstLine := []string{"number", "name", "numberOfAttempts", "date"}
 
 	err = csvWriter.Write(firstLine)
 	if err != nil {
@@ -91,7 +94,7 @@ func saveResultsToCSV(dataBase []playerWithResult, filename string) {
 
 	//add all records to csv
 	for index, result := range dataBase {
-		resultAsArray := []string{strconv.Itoa(index + 1), result.name, strconv.Itoa(result.numberOfAttempts)}
+		resultAsArray := []string{strconv.Itoa(index + 1), result.name, strconv.Itoa(result.numberOfAttempts), result.date}
 
 		err := csvWriter.Write(resultAsArray)
 		if err != nil {
@@ -110,35 +113,89 @@ func saveResultsToCSV(dataBase []playerWithResult, filename string) {
 	}
 }
 
+func createDataBaseFromData(data [][]string) []playerWithResult {
+	dataBase := make([]playerWithResult, 0)
+
+	for index, row := range data {
+		if index > 0 {
+			numberOfAttempts, _ := strconv.Atoi(row[2])
+			dataBase = append(dataBase, playerWithResult{row[1], numberOfAttempts, row[3]})
+		}
+	}
+
+	return dataBase
+}
+
+func getDataBaseFromFile(filename string) []playerWithResult {
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0444)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	csvReader := csv.NewReader(file)
+	data, err := csvReader.ReadAll()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return createDataBaseFromData(data)
+}
+
 func printFormattedResults(dataBase []playerWithResult) {
 	fmt.Println("Results:")
 	for index, result := range dataBase {
-		fmt.Printf("%d. name: %s, number of attempts: %d\n", index+1, result.name, result.numberOfAttempts)
+		fmt.Printf("%d. name: %s, number of attempts: %d, date: %s\n", index+1, result.name, result.numberOfAttempts, result.date)
 	}
 }
 
-func zadanie2() {
+func updateYourResultInDataBase(dataBase []playerWithResult, name string, numberOfAttempts int, date string) bool {
+	updateWasMade := false
+	var indexOfUpdatedResult int
+
+	for index, result := range dataBase {
+		if result.name == name {
+			if result.numberOfAttempts > numberOfAttempts {
+				updateWasMade = true
+				indexOfUpdatedResult = index
+			}
+		}
+	}
+
+	if updateWasMade {
+		dataBase[indexOfUpdatedResult] = playerWithResult{name, numberOfAttempts, date}
+		return true
+	}
+	return false
+
+}
+
+func addResultToDataBase(dataBase *[]playerWithResult, name string, numberOfAttempts int, date string) {
+	//zwraca falsz gdy nie uda sie z updatowac co oznacza ze nie ma go i trzeba dodac
+	if !updateYourResultInDataBase(*dataBase, name, numberOfAttempts, date) {
+		//add result to dataBase
+		*dataBase = append(*dataBase, playerWithResult{name, numberOfAttempts, date})
+	}
+}
+
+func menuAndGameControl() {
 	var name string
 	var menuOption int
-	dataBase := make([]playerWithResult, 0)
 
-	dataBase = append(dataBase, playerWithResult{"janek", 15})
-	dataBase = append(dataBase, playerWithResult{"kuba", 5})
-	dataBase = append(dataBase, playerWithResult{"wojtek", 19})
+	//pobieramy rezultaty z pliku
+	dataBase := getDataBaseFromFile("results.csv")
 
-Menu:
+menu:
 	for {
 
 		fmt.Println("Menu:")
 		fmt.Println("1. Start a game")
 		fmt.Println("2. Quit a game")
 
+		//kontrola czy to napewno liczba
 		_, err := fmt.Scanf("%d\n", &menuOption)
 		if err != nil {
 			fmt.Println("error: ", err)
 		}
-
-		//przy eneter zaczyna nową gre
 
 		switch menuOption {
 		case 1:
@@ -150,25 +207,19 @@ Menu:
 			if err != nil {
 				fmt.Println("error: ", err)
 			}
+			currentTime := time.Now().Format("01-02-2006 15:04:05")
 
-			//first check if we have your name already in database
-			//and check if new result is better
-			//for _, result := range dataBase {
-			//	if result.name == name{
-			//		if result.numberOfAttempts > numberOfAttempts:
-			//
-			//	}
-			//}
-
-			//add result to dataBase
-			dataBase = append(dataBase, playerWithResult{name, numberOfAttempts})
+			addResultToDataBase(&dataBase, name, numberOfAttempts, currentTime)
 		case 2:
 			//sort results
 			sort.Sort(ByNumberOfAttempts(dataBase))
-
 			printFormattedResults(dataBase)
 			saveResultsToCSV(dataBase, "results.csv")
-			break Menu
+			break menu
 		}
 	}
+}
+
+func zadanie2() {
+	menuAndGameControl()
 }
