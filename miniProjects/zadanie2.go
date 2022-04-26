@@ -25,6 +25,53 @@ func (a ByNumberOfAttempts) Len() int           { return len(a) }
 func (a ByNumberOfAttempts) Less(i, j int) bool { return a[i].numberOfAttempts < a[j].numberOfAttempts }
 func (a ByNumberOfAttempts) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
+func main2() {
+	menuAndGameControl()
+}
+
+func menuAndGameControl() {
+	var name string
+	var menuOption int
+
+	//pobieramy rezultaty z pliku
+	dataBase := getDataBaseFromFile("results.csv")
+
+menu:
+	for {
+
+		fmt.Println("Menu:")
+		fmt.Println("1. Start a game")
+		fmt.Println("2. Quit a game")
+
+		//kontrola czy to napewno liczba
+		_, err := fmt.Scanf("%d\n", &menuOption)
+		if err != nil {
+			fmt.Println("error: ", err)
+		}
+
+		switch menuOption {
+		case 1:
+			numberOfAttempts := game()
+
+			fmt.Println("What is your name ?")
+			_, err := fmt.Scanf("%s\n", &name)
+
+			if err != nil {
+				fmt.Println("error: ", err)
+			}
+			currentTime := time.Now().Format("01-02-2006 15:04:05")
+
+			addResultToDataBase(&dataBase, name, numberOfAttempts, currentTime)
+		case 2:
+			//sort results
+			sort.Sort(ByNumberOfAttempts(dataBase))
+			printFormattedResults(dataBase)
+			saveResultsToCSV(dataBase, "results.csv")
+			break menu
+		}
+	}
+}
+
 func analyzeChosenNumber(chosenNumber, randomNumber int) bool {
 	if chosenNumber == randomNumber {
 		fmt.Println("You Won!")
@@ -175,51 +222,4 @@ func addResultToDataBase(dataBase *[]playerWithResult, name string, numberOfAtte
 		//add result to dataBase
 		*dataBase = append(*dataBase, playerWithResult{name, numberOfAttempts, date})
 	}
-}
-
-func menuAndGameControl() {
-	var name string
-	var menuOption int
-
-	//pobieramy rezultaty z pliku
-	dataBase := getDataBaseFromFile("results.csv")
-
-menu:
-	for {
-
-		fmt.Println("Menu:")
-		fmt.Println("1. Start a game")
-		fmt.Println("2. Quit a game")
-
-		//kontrola czy to napewno liczba
-		_, err := fmt.Scanf("%d\n", &menuOption)
-		if err != nil {
-			fmt.Println("error: ", err)
-		}
-
-		switch menuOption {
-		case 1:
-			numberOfAttempts := game()
-
-			fmt.Println("What is your name ?")
-			_, err := fmt.Scanf("%s\n", &name)
-
-			if err != nil {
-				fmt.Println("error: ", err)
-			}
-			currentTime := time.Now().Format("01-02-2006 15:04:05")
-
-			addResultToDataBase(&dataBase, name, numberOfAttempts, currentTime)
-		case 2:
-			//sort results
-			sort.Sort(ByNumberOfAttempts(dataBase))
-			printFormattedResults(dataBase)
-			saveResultsToCSV(dataBase, "results.csv")
-			break menu
-		}
-	}
-}
-
-func zadanie2() {
-	menuAndGameControl()
 }

@@ -12,8 +12,7 @@ func contains(elements []int, element int) bool {
 	return false
 }
 
-//z malej czyli prywatna funkcja
-func zadanie1() {
+func main1() {
 	//slice z wybranymi indexami
 	chosenElements := make([]int, 0)
 	var option, chosenIndex int
