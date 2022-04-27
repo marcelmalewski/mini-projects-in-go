@@ -6,14 +6,26 @@ import (
 	"time"
 )
 
-func printAnthill(anthill [20][20]string) {
+type ant struct {
+	id    int
+	value string
+}
+
+func newAnt(id int) *ant {
+	newAnt := ant{id: id}
+	newAnt.value = "m"
+	//losuje sie czy jest warriarem czy nie
+	return &newAnt
+}
+
+func printAnthill(anthill [20][20]ant) {
 	for i := range anthill {
 		fmt.Println(anthill[i])
 	}
 }
 
-func createAnthill() (anthill [20][20]string) {
-	var row = [...]string{"-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-"} //assign
+func createAnthill() (anthill [20][20]ant) {
+	var row [20]ant //assign
 
 	for i := range anthill { //assign
 		anthill[i] = row
@@ -22,7 +34,7 @@ func createAnthill() (anthill [20][20]string) {
 	return anthill
 }
 
-func checkIfSpaceIsEmpty(row int, col int, anthill [20][20]string) bool {
+func checkIfSpaceIsEmpty(row int, col int, anthill [20][20]ant) bool {
 	if anthill[row][col] == "-" {
 		return true
 	} else {
@@ -30,12 +42,12 @@ func checkIfSpaceIsEmpty(row int, col int, anthill [20][20]string) bool {
 	}
 }
 
-func checkNumberOfAntsOnAnthill(anthill [20][20]string) int {
+func checkNumberOfThingsOnAnthill(anthill [20][20]ant, thing string) int {
 	sum := 0
 
 	for _, row := range anthill {
 		for _, space := range row {
-			if space == "1" {
+			if space == thing {
 				sum++
 			}
 		}
@@ -44,21 +56,7 @@ func checkNumberOfAntsOnAnthill(anthill [20][20]string) int {
 	return sum
 }
 
-func checkNumberOfLeavesOnAnthill(anthill [20][20]string) int {
-	sum := 0
-
-	for _, row := range anthill {
-		for _, space := range row {
-			if space == "2" {
-				sum++
-			}
-		}
-	}
-
-	return sum
-}
-
-func createAntsOnAnthill(anthill *[20][20]string) {
+func addSomeThingOnAnthill(anthill *[20][20]string, thing string, howMany int) {
 	rand.Seed(time.Now().UnixNano())
 
 loop:
@@ -67,29 +65,10 @@ loop:
 		col := rand.Intn(20)
 
 		if checkIfSpaceIsEmpty(row, col, *anthill) {
-			anthill[row][col] = "1"
+			anthill[row][col] = thing
 		}
 
-		if checkNumberOfAntsOnAnthill(*anthill) == 20 {
-			break loop
-		}
-	}
-}
-
-func createLeavesOnAnthill(anthill *[20][20]string) {
-	//z tejk i tej wyzej mozna zrobic jenno funkcje ktora w parametrze przyjmuje co wstawia
-	rand.Seed(time.Now().UnixNano())
-
-loop:
-	for {
-		row := rand.Intn(20)
-		col := rand.Intn(20)
-
-		if checkIfSpaceIsEmpty(row, col, *anthill) {
-			anthill[row][col] = "2"
-		}
-
-		if checkNumberOfLeavesOnAnthill(*anthill) == 20 {
+		if checkNumberOfThingsOnAnthill(*anthill, thing) == howMany {
 			break loop
 		}
 	}
@@ -98,8 +77,8 @@ loop:
 func main() {
 	antHill := createAnthill()
 
-	createAntsOnAnthill(&antHill)
-	createLeavesOnAnthill(&antHill)
+	addSomeThingOnAnthill(&antHill, "m", 20)
+	//addSomeThingOnAnthill(&antHill, "l", 30)
 
 	printAnthill(antHill)
 }
