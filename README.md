@@ -1,1 +1,1 @@
-# Go_projects
+# Small school projects in go
